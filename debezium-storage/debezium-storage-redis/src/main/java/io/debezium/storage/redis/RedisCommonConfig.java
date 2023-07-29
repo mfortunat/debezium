@@ -6,6 +6,8 @@
 package io.debezium.storage.redis;
 
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +32,12 @@ public class RedisCommonConfig {
 
     private static final Field PROP_PASSWORD = Field.create(CONFIGURATION_FIELD_PREFIX_STRING + "password")
             .withDescription("The password that will be used to access Redis");
+
+    private static final int DEFAULT_DB_INDEX = 0;
+    private static final Field PROP_DB_INDEX = Field.create(CONFIGURATION_FIELD_PREFIX_STRING + "db.index")
+            .withDescription("The database index (0..15) that will be used in Redis")
+            .withAllowedValues(IntStream.rangeClosed(0, 15).boxed().collect(Collectors.toSet()))
+            .withDefault(DEFAULT_DB_INDEX);
 
     private static final boolean DEFAULT_SSL_ENABLED = false;
     private static final Field PROP_SSL_ENABLED = Field.create(CONFIGURATION_FIELD_PREFIX_STRING + "ssl.enabled")
@@ -80,6 +88,7 @@ public class RedisCommonConfig {
     private String address;
     private String user;
     private String password;
+    private int dbIndex;
     private boolean sslEnabled;
 
     private Integer initialRetryDelay;
@@ -105,13 +114,14 @@ public class RedisCommonConfig {
 
     protected List<Field> getAllConfigurationFields() {
         return Collect.arrayListOf(PROP_ADDRESS, PROP_USER, PROP_PASSWORD, PROP_SSL_ENABLED, PROP_CONNECTION_TIMEOUT, PROP_SOCKET_TIMEOUT, PROP_RETRY_INITIAL_DELAY,
-                PROP_RETRY_MAX_DELAY, PROP_WAIT_ENABLED, PROP_WAIT_TIMEOUT, PROP_WAIT_RETRY_ENABLED, PROP_WAIT_RETRY_DELAY);
+                PROP_RETRY_MAX_DELAY, PROP_WAIT_ENABLED, PROP_WAIT_TIMEOUT, PROP_WAIT_RETRY_ENABLED, PROP_WAIT_RETRY_DELAY, PROP_DB_INDEX);
     }
 
     protected void init(Configuration config) {
         address = config.getString(PROP_ADDRESS);
         user = config.getString(PROP_USER);
         password = config.getString(PROP_PASSWORD);
+        dbIndex = config.getInteger(PROP_DB_INDEX);
         sslEnabled = config.getBoolean(PROP_SSL_ENABLED);
 
         initialRetryDelay = config.getInteger(PROP_RETRY_INITIAL_DELAY);
@@ -178,4 +188,7 @@ public class RedisCommonConfig {
         return waitRetryDelay;
     }
 
+    public int getDbIndex() {
+        return dbIndex;
+    }
 }

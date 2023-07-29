@@ -29,6 +29,7 @@ public class RedisConnection {
     private String address;
     private String user;
     private String password;
+    private int dbIndex;
     private int connectionTimeout;
     private int socketTimeout;
     private boolean sslEnabled;
@@ -46,6 +47,27 @@ public class RedisConnection {
         this.address = address;
         this.user = user;
         this.password = password;
+        this.dbIndex = 0;
+        this.connectionTimeout = connectionTimeout;
+        this.socketTimeout = socketTimeout;
+        this.sslEnabled = sslEnabled;
+    }
+
+    /**
+     *
+     * @param address
+     * @param user
+     * @param password
+     * @param dbIndex
+     * @param connectionTimeout
+     * @param socketTimeout
+     * @param sslEnabled
+     */
+    public RedisConnection(String address, String user, String password, int connectionTimeout, int socketTimeout, boolean sslEnabled, int dbIndex) {
+        this.address = address;
+        this.user = user;
+        this.password = password;
+        this.dbIndex = dbIndex;
         this.connectionTimeout = connectionTimeout;
         this.socketTimeout = socketTimeout;
         this.sslEnabled = sslEnabled;
@@ -71,6 +93,11 @@ public class RedisConnection {
         Jedis client;
         try {
             client = new Jedis(address.getHost(), address.getPort(), this.connectionTimeout, this.socketTimeout, this.sslEnabled);
+
+            // default Jedis db index is zero, so change it only if != 0
+            if (this.dbIndex != 0 && client.isConnected()) {
+                client.select(this.dbIndex);
+            }
 
             if (this.user != null) {
                 client.auth(this.user, this.password);
