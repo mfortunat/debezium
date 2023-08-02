@@ -26,6 +26,9 @@ public class RedisConnection {
     public static final String DEBEZIUM_OFFSETS_CLIENT_NAME = "debezium:offsets";
     public static final String DEBEZIUM_SCHEMA_HISTORY = "debezium:schema_history";
 
+    private static final String REDIS_CLUSTER_INFO_SECTION = "cluster";
+    private static final String REDIS_CLUSTER_INFO_REPLY = "cluster_enabled:1";
+
     private String address;
     private String user;
     private String password;
@@ -34,24 +37,6 @@ public class RedisConnection {
     private int socketTimeout;
     private boolean sslEnabled;
 
-    /**
-     *
-     * @param address
-     * @param user
-     * @param password
-     * @param connectionTimeout
-     * @param socketTimeout
-     * @param sslEnabled
-     */
-    public RedisConnection(String address, String user, String password, int connectionTimeout, int socketTimeout, boolean sslEnabled) {
-        this.address = address;
-        this.user = user;
-        this.password = password;
-        this.dbIndex = 0;
-        this.connectionTimeout = connectionTimeout;
-        this.socketTimeout = socketTimeout;
-        this.sslEnabled = sslEnabled;
-    }
 
     /**
      *
@@ -63,7 +48,7 @@ public class RedisConnection {
      * @param socketTimeout
      * @param sslEnabled
      */
-    public RedisConnection(String address, String user, String password, int connectionTimeout, int socketTimeout, boolean sslEnabled, int dbIndex) {
+    public RedisConnection(String address, String user, String password, int dbIndex, int connectionTimeout, int socketTimeout, boolean sslEnabled) {
         this.address = address;
         this.user = user;
         this.password = password;
@@ -94,9 +79,14 @@ public class RedisConnection {
         try {
             client = new Jedis(address.getHost(), address.getPort(), this.connectionTimeout, this.socketTimeout, this.sslEnabled);
 
-            // default Jedis db index is zero, so change it only if != 0
+            // default Jedis dbIndex is zero, so change it only if != 0 and it is not a Redis Cluster
             if (this.dbIndex != 0 && client.isConnected()) {
-                client.select(this.dbIndex);
+                if (isClusterModeEnabled(client)) {
+                    LOGGER.warn("Cluster Mode is enabled, cannot switch db index");
+                } else {
+                    client.select(this.dbIndex);
+                    LOGGER.info("Switched to db index: {}", dbIndex);
+                }
             }
 
             if (this.user != null) {
@@ -130,4 +120,9 @@ public class RedisConnection {
 
         return redisClient;
     }
+
+    private boolean isClusterModeEnabled(Jedis client) {
+        return client.info(REDIS_CLUSTER_INFO_SECTION).equals(REDIS_CLUSTER_INFO_REPLY);
+    }
+
 }
